@@ -108,6 +108,7 @@ static int kfs_select_track(struct stream *s, unsigned int tracknr)
     close(fd);
     kfss->datsz = sz;
     kfss->track = tracknr;
+    printf("Selected track %d\n", tracknr);
 
     return 0;
 }
@@ -140,6 +141,7 @@ static bool_t kfs_next_flux(struct stream *s, uint32_t *p_flux)
     bool_t done = 0;
 
     if (kfss->stream_idx >= kfss->index_pos) {
+        printf("Index at %d\n", kfss->stream_idx);
         kfss->index_pos = ~0u;
         index_reset(s);
     }

@@ -254,7 +254,9 @@ int dsk_write_mfm(
                "expected %u)\n", tracknr, s->track_bitlen, ti->total_bits);
     }
 
-    ti->data_bitoff = (int32_t)ti->data_bitoff % (int32_t)ti->total_bits;
+   
+    printf("nr of indices: %d\n", s->nr_index);
+ ti->data_bitoff = (int32_t)ti->data_bitoff % (int32_t)ti->total_bits;
     if ((int32_t)ti->data_bitoff < 0)
         ti->data_bitoff += ti->total_bits;
 

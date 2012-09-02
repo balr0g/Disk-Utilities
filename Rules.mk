@@ -29,8 +29,8 @@ LD := ld
 OBJCOPY := objcopy
 RM := rm -f
 
-CFLAGS = -O2
-#CFLAGS = -O0 -g
+#CFLAGS = -O2
+CFLAGS = -O0 -g
 CFLAGS += -fno-strict-aliasing -std=gnu99 -Werror -Wall
 CFLAGS += -I$(ROOT)/libdisk/include
 CFLAGS += -MMD -MF .$(@F).d
