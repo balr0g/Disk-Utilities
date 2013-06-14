@@ -81,8 +81,25 @@ int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_
     if(size != 342 && sec_size != 256) {
         errx(1, "Invalid sector being decoded -- wrong sizes!");
     }
+    
+    uint8_t tmpbuf[size];
+    uint8_t c = 0;
+    // convert the data into 6-byte GCR and calculate the checksum
+    for(int i = 0; i < size; i++) {
+        tmpbuf[i] = gcr6bw_tb[in[i]] ^ c;
+        c = tmpbuf[i];
+        printf("%02x", in[i]);
+    }
+    
+    // decode "2" sections of "6-and-2" -- first 86 bytes of 342-byte buffer
+    // first block
+    for(int i=0; i<86; i++) {
+        
+    }
 
-    return 0;
+
+    printf("\n");
+    return c;
 }
 
 int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
@@ -98,10 +115,23 @@ int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
     return -1; // didn't find any!
 }
 
+
+int apple_II_read_block(struct stream *s, uint8_t *buf, unsigned int length)
+{
+    int i;
+    int16_t tempnybble;
+    for (i = 0; i < length; i++) {
+        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        if (tempnybble == -1) return -1; // bail out of we ran out of bits
+        buf[i] = tempnybble;
+    }
+    return 0;
+}
+
 /**
  @return 0 if found, -1 if no mark found before end of stream
 **/
-int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, unsigned int max_bits_between_nybbles)
+int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
 {
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour = 0; // last four nybbles read
@@ -124,6 +154,9 @@ int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, u
                 case 0x00D5AAAD:
                     printf("Data mark header\n");
                     break;
+                case 0x00DEAAEB:
+                    printf("Postamble\n");
+                    break;
                 default:
                     printf("Unknown mark\n");
                     break;
@@ -135,7 +168,7 @@ int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, u
 
 int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct apple_II_address_field *address_field)
 {
-    int mark_status = apple_II_scan_mark(s, addrmark, ~0u, 12);
+    int mark_status = apple_II_scan_mark(s, addrmark, ~0u);
     int i;
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour; // last four nybbles read
@@ -145,7 +178,7 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 12); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -156,7 +189,7 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 12); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -167,11 +200,11 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     lastfour = 0;
     for (i = 0; i < 3; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 12); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
-    address_field->postamble = s->word & 0xFFFFFF;
+    address_field->postamble = lastfour;
 
     return mark_status;
 }
@@ -216,23 +249,46 @@ struct disk *d, unsigned int tracknr, struct stream *s)
 
 
         // find data mark
-        if(apple_II_scan_mark(s, extra_data->data_mark, 20*8, 12) < 0) {
+        if(apple_II_scan_mark(s, extra_data->data_mark, 20*8) < 0) {
             trk_warn(ti, tracknr, "No data mark for sec=%02x", addrfld.sector);
             continue;
         }
-        if(stream_next_bytes(s, dat, extra_data->data_raw_length) == -1) {
+        trk_warn(ti, tracknr, "DM OK");
+
+        // extract data
+        if(apple_II_read_block(s, dat, extra_data->data_raw_length) == -1) {
             trk_warn(ti, tracknr, "Could not read data for sec=%02x", addrfld.sector);
             continue;
         }
-        trk_warn(ti, tracknr, "DM OK");
+        
+        // data checksum
+        int16_t dat_cksum;
+        if((dat_cksum=apple_II_get_nybble(s, 0)) == -1) {
+            trk_warn(ti, tracknr, "No data checksum for sec=%02x", addrfld.sector);
+            continue;
+        }
+        
+        // decode data
+        uint8_t calc_cksum = extra_data->decode_bytes(dat, buf, extra_data->data_raw_length, ti->bytes_per_sector);
+
+        // verify data checksum
+        if(gcr6bw_tb[dat_cksum] != calc_cksum) {
+            trk_warn(ti, tracknr, "Invalid checksum for sec=%02x: Expected=%02x, Actual=%02x", addrfld.sector, dat_cksum, calc_cksum);
+        } else {
+            trk_warn(ti, tracknr, "Good checksum for sec=%02x", addrfld.sector);
+        }
+        
+        // find data postamble
+        if(apple_II_scan_mark(s, extra_data->postamble, 0) == -1) {
+            trk_warn(ti, tracknr, "No data postamble for sec=%02x", addrfld.sector);
+        }
+        
         /*
         if(stream_next_bits(s,1) == -1)) { 
             trk_warn(ti, tracknr, 
             continue;
         } 
         */
-        extra_data->decode_bytes(dat, buf, extra_data->data_raw_length, ti->bytes_per_sector);
-
     }
     return NULL;
 }
