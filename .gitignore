@@ -4,6 +4,7 @@
 *~
 *.so
 *.so.*
+*.dylib
 *.orig
 *.rej
 adfbb/adfbb
