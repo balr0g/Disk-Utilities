@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #if !defined(__MINGW32__) && !defined(__APPLE__)
 #define __PLATFORM_HAS_ENDIAN_H__

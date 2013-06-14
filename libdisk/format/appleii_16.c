@@ -85,34 +85,16 @@ int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_
     return 0;
 }
 
-int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
+int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan) // find and return a byte with the high bit set
 {
-    #if 1
-    while((stream_next_bit(s) != -1) && --max_scan) {
-        if((s->word & 0x80) == 0x80) { // valid nybble
-            int16_t val = (s->word) & 0xFF;
-            stream_next_bits(s,7);
-            return val;
-        }
-        
+    assert(max_scan >= 1);
+    if (stream_next_bits(s,8) == -1)
+        return -1; // end of stream!
+    while((s->word&0x80)==0) {
+        if ((--max_scan<=0)||(stream_next_bit(s)==-1))
+            return -1; // timeout or end of stream
     }
-    return -1; // didn't find any!
-    #endif
-    #if 0
-    while((stream_next_bit(s) != -1) && --max_scan) {
-        if((s->word & 1) == 0) {
-            continue;
-        } else if((s->word & 1) == 1) { // valid nybble
-            if(stream_next_bits(s, 7) == -1) { // shift over by 7 bits
-                return -1;
-            }
-            int16_t val = (s->word) & 0xFF;
-            ///stream_next_bits(s,8); // shift stream a byte so we don't get repeats
-            return val;
-        }
-    } 
-    return -1; // didn't find any!
-    #endif
+    return (int16_t)(s->word&0xFF);
 }
 
 int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, unsigned int max_bits_between_nybbles)
@@ -134,12 +116,12 @@ int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, u
         return -1;
       //  printf("\nT: %02x\n", (mark>>24)&0xFF);
       
-        //if(a==0xFF) {
+   //     if(a==0xFF) {
             if ((b=apple_II_get_nybble(s, max_bits_between_nybbles)) == ((mark>>16)&0xFF)) {
                 if(b==-1) {
                     return -1;
                 }
-                printf(" %x%02x", a>>16,  ((mark>>16)&0xFF));
+                printf(" %x%02x", a,  ((mark>>16)&0xFF));
                 if ((b=apple_II_get_nybble(s, max_bits_between_nybbles)) == ((mark>>8)&0xFF)) {
                     if(b==-1) {
                         return -1;
@@ -155,7 +137,7 @@ int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan, u
                         printf("%02x NOTAM\n", b);
                     }
                 }
-        //   } 
+      //     } 
         }
         else {
             if(b == -1)
@@ -176,6 +158,7 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     
     address_field->address_mark = addrmark; // we know this is correct, otherwise we'd have failed
     /* volume, track */
+    
     if (stream_next_bits(s, 32) == -1)
         goto fail;
     address_field->volume = apple_II_gcr4_decode(s->word >> 24, s->word >> 16);
