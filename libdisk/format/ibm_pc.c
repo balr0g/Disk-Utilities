@@ -408,6 +408,21 @@ struct track_handler acorn_adfs_f_handler = {
     }
 };
 
+/* Canon Cat (80 track) single-sided */
+struct track_handler canon_cat_handler = {
+    .density = trkden_double,
+    .bytes_per_sector = 512,
+    .nr_sectors = 10,
+    .write_raw = ibm_pc_write_raw,
+    .read_raw = ibm_pc_read_raw,
+    .write_sectors = ibm_pc_write_sectors,
+    .read_sectors = ibm_pc_read_sectors,
+    .extra_data = & (struct ibm_extra_data) {
+        .sector_base = 0
+    }
+};
+
+
 /*
  * There are also two Acorn DFS formats from the BBC Micro which require
  * FM decode support:

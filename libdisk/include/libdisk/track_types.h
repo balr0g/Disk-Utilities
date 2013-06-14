@@ -79,4 +79,5 @@ X(trace_traceback_hd, "Trace TRACEBACK duplicator info (HD)")
 X(acorn_adfs_s_m_l, "Acorn ADFS '160K S', '320K M' or '640K L'")
 X(acorn_adfs_d_e, "Acorn ADFS '800K D' or '800K E'")
 X(acorn_adfs_f, "Acorn ADFS '1600K F'")
-
+X(canon_cat, "Canon Cat format")
+X(apple_II_16sector, "Apple II 16-sector")

@@ -662,6 +662,11 @@ sensible
 ####################
 # IBM PC Formats
 
+# Canon Cat
+canon_cat
+    * canon_cat
+
+
 # 5.25-inch and 3.5-inch double density (360K and 720K)
 ibm_pc_dd
     * ibm_pc_dd
@@ -700,3 +705,6 @@ acorn_adfs_d_e
 acorn_adfs_f
     * acorn_adfs_f
 
+# Apple II
+apple_II_16sector
+    * apple_II_16sector
