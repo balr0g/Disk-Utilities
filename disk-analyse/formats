@@ -1013,3 +1013,6 @@ acorn_adfs_f
 # Apple II
 apple_II_16sector
     * apple_II_16sector
+
+apple_II_13sector
+    * apple_II_13sector

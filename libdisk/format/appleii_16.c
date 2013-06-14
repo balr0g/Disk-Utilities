@@ -3,27 +3,6 @@
  * 
  * 16-sector Apple II format.
  * 
- * Notes on IBM-compatible MFM data format:
- * ----------------------------------------
- * Supported by uPD765A, Intel 8272, and many other FDC chips, as used in
- * pretty much every home computer (except Amiga and C64!).
- * 
- * Useful references:
- *  "Beneath Apple DOS" by Don Worth and Pieter Lechner,
- *  "Understanding the Apple II" by Jim Sather
- * 
- * Index Address Mark (IAM):
- *      0xc2c2c2fc
- * ID Address Mark (IDAM):
- *      0xa1a1a1fe, <cyl>, <hd> <sec>, <sz>, <crc16_ccitt>
- * Data Address Mark (DAM):
- *      0xa1a1a1fb, <N bytes data>, <crc16_ccitt> [N = 128 << sz]
- * Deleted Data Address Mark (DDAM):
- *      As DAM, but identifier 0xfb -> 0xf8
- * 
- * NB. In above, 0xc2 and 0xa1 are sync marks which have one of their clock
- *     bits forced to zero. Hence 0xc2 -> 0x5224; 0xa1 -> 0x4489.
- * 
  * Written in 2013 by balr0g
  */
 
@@ -126,6 +105,11 @@ int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_
 
   //  printf("\n");
     return c;
+}
+
+int apple_II_13sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_size)
+{
+    return 0;
 }
 
 int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
@@ -235,7 +219,7 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     return mark_status;
 }
 
-static void *apple_II_16sector_write_raw(
+static void *apple_II_sector_write_raw(
 struct disk *d, unsigned int tracknr, struct stream *s)
 {
     struct track_info *ti = &d->di->track[tracknr];
@@ -320,7 +304,7 @@ struct disk *d, unsigned int tracknr, struct stream *s)
     return block;
 }
 
-static void apple_II_16sector_read_raw(
+static void apple_II_sector_read_raw(
 struct disk *d, unsigned int tracknr, struct tbuf *tbuf)
 {
 }
@@ -332,8 +316,8 @@ struct track_handler apple_II_16sector_handler = {
     .density = trkden_single,
     .bytes_per_sector = 256,
     .nr_sectors = 16,
-    .write_raw = apple_II_16sector_write_raw,
-    .read_raw = apple_II_16sector_read_raw,
+    .write_raw = apple_II_sector_write_raw,
+    .read_raw = apple_II_sector_read_raw,
 //    .write_sectors = apple_II_16sector_write_sectors,
 //    .read_sectors = apple_II_16sector_read_sectors,
     .extra_data = & (struct apple_II_extra_data) {
@@ -345,21 +329,27 @@ struct track_handler apple_II_16sector_handler = {
     }
 };
 
-/*
+
+
+
+
 struct track_handler apple_II_13sector_handler = {
     .density = trkden_double,
     .bytes_per_sector = 256,
     .nr_sectors = 13,
-    .write_raw = apple_II_16sector_write_raw,
-    .read_raw = apple_II_16sector_read_raw,
-    .write_sectors = apple_II_16sector_write_sectors,
-    .read_sectors = apple_II_16sector_read_sectors,
-    .extra_data = & (struct ibm_extra_data) {
-        .address_mark = 0xFFD5AAAB;
-        .data_mark = 0xFFD5AAAD;
+    .write_raw = apple_II_sector_write_raw,
+    .read_raw = apple_II_sector_read_raw,
+//    .write_sectors = apple_II_13sector_write_sectors,
+//    .read_sectors = apple_II_16sector_read_sectors,
+    .extra_data = & (struct apple_II_extra_data) {
+        .address_mark = 0xFFD5AAAB,
+        .data_mark = 0xFFD5AAAD,
+        .data_raw_length = 410,
+        .postamble = 0xDEAAEB,
+        .decode_bytes = apple_II_13sector_decode_bytes
     }
 };
-*/
+
 
 
 /*
