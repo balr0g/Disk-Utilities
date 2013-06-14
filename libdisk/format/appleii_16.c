@@ -82,23 +82,49 @@ int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_
         errx(1, "Invalid sector being decoded -- wrong sizes!");
     }
     
-    uint8_t tmpbuf[size];
+    uint8_t buf[size];
     uint8_t c = 0;
     // convert the data into 6-byte GCR and calculate the checksum
     for(int i = 0; i < size; i++) {
-        tmpbuf[i] = gcr6bw_tb[in[i]] ^ c;
-        c = tmpbuf[i];
-        printf("%02x", in[i]);
+        buf[i] = gcr6bw_tb[in[i]] ^ c;
+        c = buf[i];
+   //     printf("%02x", in[i]);
     }
     
-    // decode "2" sections of "6-and-2" -- first 86 bytes of 342-byte buffer
+    memset(out, 0, sec_size);
+    
+    // buffer broken into the following sections:
+    // bytes 0-86:
+    //   "2" section: bits: xx 01c 01b 01a
+    //   a is for first 86 bytes, b is for next 86, c is for last 84
+    // bytes 87-173:
+    // remaining "6" sections, bits 00 76 54 32
+    
+    
+    // first block - decode "2" section of "6-and-2" -- first 86 bytes of 342-byte buffer
     // first block
     for(int i=0; i<86; i++) {
-        
+        // set a
+        out[i] |= ((buf[i]&0x2) == 0x2);
+        out[i] |= ((buf[i]&0x1) == 0x1) << 1;
+        // set b
+        out[i+86] |= ((buf[i]&0x8) == 0x8);
+        out[i+86] |= ((buf[i]&0x4) == 0x4) << 1;
+        // set c (warning, only 84 bytes!)
+        if(i<84) {
+            out[i+86+86] |= ((buf[i]&0x20) == 0x20);
+            out[i+86+86] |= ((buf[i]&0x10) == 0x10) << 1;
+        }
+    }
+   
+    // remaining blocks - decode "6" sections
+    for(int i=86; i<86+86+86+84; i++) {
+        out[i-86] |= buf[i] << 2;
+      //  printf("%c ", out[i-86]);
     }
 
 
-    printf("\n");
+  //  printf("\n");
     return c;
 }
 
@@ -215,17 +241,16 @@ struct disk *d, unsigned int tracknr, struct stream *s)
     struct track_info *ti = &d->di->track[tracknr];
     struct apple_II_extra_data *extra_data = handlers[ti->type]->extra_data;
     int stream_is_over = 0;
-    //char *block = memalloc(ti->len + 1);
-    //unsigned int nr_valid_blocks = 0;
+    char *block = memalloc(ti->len + 1); // buffer for decoded output track 
+    unsigned int nr_valid_blocks = 0; // number of valid sectors so far
 
     // loop until we find all sectors
-    while (!stream_is_over) { 
-    //(nr_valid_blocks != ti->nr_sectors)) {
+    while (!stream_is_over && (nr_valid_blocks != ti->nr_sectors)) { 
 
         int idx_off;
-        uint8_t dat[extra_data->data_raw_length]; // ? what does this do
-        uint8_t buf[ti->bytes_per_sector]; // ? what does this do
-        struct apple_II_address_field addrfld; // ?
+        uint8_t buf[extra_data->data_raw_length]; // buffer for un-decoded data
+        uint8_t dat[ti->bytes_per_sector]; // buffer for decoded data
+        struct apple_II_address_field addrfld; // address header struct
 
         if((idx_off = apple_II_scan_address_field(s, extra_data->address_mark, &addrfld)) < 0) {
             if(idx_off == -1) trk_warn(ti, tracknr, "No AM found");
@@ -256,7 +281,7 @@ struct disk *d, unsigned int tracknr, struct stream *s)
         trk_warn(ti, tracknr, "DM OK");
 
         // extract data
-        if(apple_II_read_block(s, dat, extra_data->data_raw_length) == -1) {
+        if(apple_II_read_block(s, buf, extra_data->data_raw_length) == -1) {
             trk_warn(ti, tracknr, "Could not read data for sec=%02x", addrfld.sector);
             continue;
         }
@@ -267,9 +292,9 @@ struct disk *d, unsigned int tracknr, struct stream *s)
             trk_warn(ti, tracknr, "No data checksum for sec=%02x", addrfld.sector);
             continue;
         }
-        
+                
         // decode data
-        uint8_t calc_cksum = extra_data->decode_bytes(dat, buf, extra_data->data_raw_length, ti->bytes_per_sector);
+        uint8_t calc_cksum = extra_data->decode_bytes(buf, dat, extra_data->data_raw_length, ti->bytes_per_sector);
 
         // verify data checksum
         if(gcr6bw_tb[dat_cksum] != calc_cksum) {
@@ -282,15 +307,17 @@ struct disk *d, unsigned int tracknr, struct stream *s)
         if(apple_II_scan_mark(s, extra_data->postamble, 0) == -1) {
             trk_warn(ti, tracknr, "No data postamble for sec=%02x", addrfld.sector);
         }
-        
-        /*
-        if(stream_next_bits(s,1) == -1)) { 
-            trk_warn(ti, tracknr, 
-            continue;
-        } 
-        */
+        if(!is_valid_sector(ti, addrfld.sector)) {
+            memcpy(&block[addrfld.sector*ti->bytes_per_sector], dat, ti->bytes_per_sector);
+            set_sector_valid(ti, addrfld.sector);
+            nr_valid_blocks++;
+        }
     }
-    return NULL;
+    if(nr_valid_blocks == 0) {
+        memfree(block);
+        return NULL;
+    }
+    return block;
 }
 
 static void apple_II_16sector_read_raw(
