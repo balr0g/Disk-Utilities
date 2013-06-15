@@ -41,7 +41,7 @@ static void adf_init(struct disk *d)
         adf_init_track(&di->track[i]);
 }
 
-static struct container *adf_open(struct disk *d)
+static const struct container *adf_open(struct disk *d)
 {
     struct track_info *ti;
     struct disk_info *di;
@@ -51,7 +51,7 @@ static struct container *adf_open(struct disk *d)
 
     read_exact(d->fd, sig, sizeof(sig));
     if (!strncmp(sig, "UAE-1ADF", sizeof(sig)))
-        return container_eadf.open(d);
+        return containers[CONTTYP_eadf]->open(d);
 
     sz = lseek(d->fd, 0, SEEK_END);
     if (sz != 160*512*11) {
@@ -77,7 +77,7 @@ static struct container *adf_open(struct disk *d)
         }
     }
 
-    return &container_adf;
+    return containers[CONTTYP_eadf];
 }
 
 static void adf_close(struct disk *d)

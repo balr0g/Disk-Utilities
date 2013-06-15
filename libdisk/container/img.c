@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-static struct container *img_open(struct disk *d)
+static const struct container *img_open(struct disk *d)
 {
     /* not supported */
     return NULL;

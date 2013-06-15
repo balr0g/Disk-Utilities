@@ -25,7 +25,7 @@ struct container;
 struct disk {
     int fd;
     bool_t read_only;
-    struct container *container;
+    const struct container *container;
     struct disk_info *di;
     struct disk_list_tag *tags;
 };
@@ -96,6 +96,9 @@ struct track_handler {
 /* Array of supported raw-bitcell analysers/handlers. */
 extern const struct track_handler *handlers[];
 
+/* Array of supported containers. */
+extern const struct container *containers[];
+
 /* Set up a track with defaults for a given track format. */
 void init_track_info(struct track_info *ti, enum track_type type);
 
@@ -104,20 +107,15 @@ struct container {
     /* Create a brand new empty container. */
     void (*init)(struct disk *);
     /* Open an existing container file. */
-    struct container *(*open)(struct disk *);
+    const struct container *(*open)(struct disk *);
     /* Close, writing back any pending changes. */
     void (*close)(struct disk *);
     /* Analyse and write a raw stream to given track in container. */
     int (*write_raw)(struct disk *, unsigned int tracknr,
                      enum track_type, struct stream *);
+    /* extra container-specific data */
+    void *extra_data;
 };
-
-/* Supported container formats. */
-extern struct container container_adf;
-extern struct container container_eadf;
-extern struct container container_dsk;
-extern struct container container_img;
-extern struct container container_ipf;
 
 /* Helpers for container implementations: defaults for init() & write_raw(). */
 void dsk_init(struct disk *d);

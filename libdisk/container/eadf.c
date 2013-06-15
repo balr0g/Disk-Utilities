@@ -24,7 +24,7 @@ struct track_header {
     uint32_t len, bitlen;
 };
 
-static struct container *eadf_open(struct disk *d)
+static const struct container *eadf_open(struct disk *d)
 {
     struct disk_header dhdr;
     struct track_header thdr;
@@ -66,7 +66,7 @@ static struct container *eadf_open(struct disk *d)
         read_exact(d->fd, ti->dat, ti->len);
     }
 
-    return &container_eadf;
+    return containers[CONTTYP_eadf];
 
 cleanup_error:
     for (i = 0; i < di->nr_tracks; i++)

@@ -1,0 +1,8 @@
+X(adf, "ADF")
+X(eadf, "Extended-ADF")
+X(dsk, "Libdisk")
+X(img, "IBM-MFM Sector Dump")
+X(ipf, "SPS/IPF")
+X(appleII_logical, "Apple II Logical Order")
+X(appleII_do, "Apple II DOS Order")
+X(appleII_po, "Apple II ProDOS Order")

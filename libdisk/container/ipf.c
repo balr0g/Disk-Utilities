@@ -243,7 +243,7 @@ static void ipf_tbuf_weak(
     ibuf->bits = bits&7;
 }
 
-static struct container *ipf_open(struct disk *d)
+static const struct container *ipf_open(struct disk *d)
 {
     /* not supported */
     return NULL;

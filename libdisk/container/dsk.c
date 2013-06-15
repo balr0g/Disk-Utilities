@@ -94,7 +94,7 @@ void dsk_init(struct disk *d)
     d->tags->tag.id = DSKTAG_end;
 }
 
-static struct container *dsk_open(struct disk *d)
+static const struct container *dsk_open(struct disk *d)
 {
     struct disk_header dh;
     struct track_header th;
@@ -151,7 +151,7 @@ static struct container *dsk_open(struct disk *d)
     *pprevtag = NULL;
 
     d->di = di;
-    return &container_dsk;
+    return containers[CONTTYP_dsk];
 }
 
 static void dsk_close(struct disk *d)

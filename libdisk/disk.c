@@ -34,6 +34,28 @@ static struct track_format_names {
 #undef X
 };
 
+/* Supported container formats. */
+#define X(a,b) extern struct container container_##a;
+#include <libdisk/container_types.h>
+#undef X
+
+const struct container *containers[] = {
+#define X(a,b) &container_##a,
+#include <libdisk/container_types.h>
+#undef X
+    NULL
+};
+
+static struct container_names {
+    const char *id_name;
+    const char *desc_name;
+} container_names[] = {
+#define X(a,b) {#a,b},
+#include <libdisk/container_types.h>
+#undef X
+};
+
+
 static void tbuf_finalise(struct tbuf *tbuf);
 
 static struct container *container_from_filename(

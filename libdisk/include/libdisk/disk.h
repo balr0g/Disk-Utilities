@@ -19,6 +19,13 @@ enum track_type {
 #undef X
 };
 
+enum container_type {
+#define X(a,b) CONTTYP_##a,
+#include <libdisk/container_types.h>
+#undef X
+};
+
+
 struct track_info {
     /* Enumeration */
     uint16_t type;
