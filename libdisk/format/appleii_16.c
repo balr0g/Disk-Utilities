@@ -9,7 +9,7 @@
 #include <libdisk/util.h>
 #include "../private.h"
 
-struct apple_II_extra_data {
+struct appleII_extra_data {
     uint32_t address_mark;
     uint32_t data_mark;
     uint32_t data_raw_length;
@@ -18,7 +18,7 @@ struct apple_II_extra_data {
     uint8_t *in, uint8_t *out, int size, int sec_size);
 };
 
-struct apple_II_address_field {
+struct appleII_address_field {
     uint32_t address_mark;
     uint8_t volume,
             track,
@@ -49,12 +49,12 @@ const uint8_t gcr6bw_tb[0x100] =
 };
 
 
-uint8_t apple_II_gcr4_decode(uint8_t e0, uint8_t e1)
+uint8_t appleII_gcr4_decode(uint8_t e0, uint8_t e1)
 {
     return ((e0 << 1) & 0xaa) | (e1 & 0x55);
 }
 
-int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_size)
+int appleII_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_size)
 {
     // bail out if this isn't a 16-sector A2 sector
     if(size != 342 && sec_size != 256) {
@@ -107,12 +107,12 @@ int apple_II_16sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_
     return c;
 }
 
-int apple_II_13sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_size)
+int appleII_13sector_decode_bytes(uint8_t *in, uint8_t *out, int size, int sec_size)
 {
     return 0;
 }
 
-int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
+int16_t appleII_get_nybble(struct stream *s, unsigned int max_scan)
 {
     while((stream_next_bit(s) != -1) && --max_scan) {
         if((s->word & 0x80) == 0x80) { // valid nybble
@@ -126,12 +126,12 @@ int16_t apple_II_get_nybble(struct stream *s, unsigned int max_scan)
 }
 
 
-int apple_II_read_block(struct stream *s, uint8_t *buf, unsigned int length)
+int appleII_read_block(struct stream *s, uint8_t *buf, unsigned int length)
 {
     int i;
     int16_t tempnybble;
     for (i = 0; i < length; i++) {
-        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         buf[i] = tempnybble;
     }
@@ -141,12 +141,12 @@ int apple_II_read_block(struct stream *s, uint8_t *buf, unsigned int length)
 /**
  @return 0 if found, -1 if no mark found before end of stream
 **/
-int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
+int appleII_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
 {
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour = 0; // last four nybbles read
     while (1) {
-        tempnybble = apple_II_get_nybble(s, max_scan); // grab one nybble
+        tempnybble = appleII_get_nybble(s, max_scan); // grab one nybble
         if (tempnybble == -1) return -1; // if end of stream, return that
         // otherwise stash the nybble we just got
         lastfour <<= 8;
@@ -176,9 +176,9 @@ int apple_II_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
     }
 }
 
-int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct apple_II_address_field *address_field)
+int appleII_scan_address_field(struct stream *s, uint32_t addrmark, struct appleII_address_field *address_field)
 {
-    int mark_status = apple_II_scan_mark(s, addrmark, ~0u);
+    int mark_status = appleII_scan_mark(s, addrmark, ~0u);
     int i;
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour; // last four nybbles read
@@ -188,29 +188,29 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
-    address_field->volume = apple_II_gcr4_decode((lastfour>>24)&0xFF, (lastfour>>16)&0xFF);
-    address_field->track = apple_II_gcr4_decode((lastfour>>8)&0xFF, lastfour&0xFF);
+    address_field->volume = appleII_gcr4_decode((lastfour>>24)&0xFF, (lastfour>>16)&0xFF);
+    address_field->track = appleII_gcr4_decode((lastfour>>8)&0xFF, lastfour&0xFF);
 
     /* sector, checksum */
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
-    address_field->sector = apple_II_gcr4_decode((lastfour>>24)&0xFF, (lastfour>>16)&0xFF);
-    address_field->checksum = apple_II_gcr4_decode((lastfour>>8)&0xFF, lastfour&0xFF);
+    address_field->sector = appleII_gcr4_decode((lastfour>>24)&0xFF, (lastfour>>16)&0xFF);
+    address_field->checksum = appleII_gcr4_decode((lastfour>>8)&0xFF, lastfour&0xFF);
 
     /* postamble */
     lastfour = 0;
     for (i = 0; i < 3; i++) {
         lastfour <<=8;
-        tempnybble = apple_II_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -219,11 +219,11 @@ int apple_II_scan_address_field(struct stream *s, uint32_t addrmark, struct appl
     return mark_status;
 }
 
-static void *apple_II_sector_write_raw(
+static void *appleII_write_raw(
 struct disk *d, unsigned int tracknr, struct stream *s)
 {
     struct track_info *ti = &d->di->track[tracknr];
-    struct apple_II_extra_data *extra_data = handlers[ti->type]->extra_data;
+    struct appleII_extra_data *extra_data = handlers[ti->type]->extra_data;
     int stream_is_over = 0;
     char *block = memalloc(ti->len + 1); // buffer for decoded output track 
     unsigned int nr_valid_blocks = 0; // number of valid sectors so far
@@ -234,9 +234,9 @@ struct disk *d, unsigned int tracknr, struct stream *s)
         int idx_off;
         uint8_t buf[extra_data->data_raw_length]; // buffer for un-decoded data
         uint8_t dat[ti->bytes_per_sector]; // buffer for decoded data
-        struct apple_II_address_field addrfld; // address header struct
+        struct appleII_address_field addrfld; // address header struct
 
-        if((idx_off = apple_II_scan_address_field(s, extra_data->address_mark, &addrfld)) < 0) {
+        if((idx_off = appleII_scan_address_field(s, extra_data->address_mark, &addrfld)) < 0) {
             if(idx_off == -1) trk_warn(ti, tracknr, "No AM found");
             if(idx_off == -2) { stream_is_over = 1; break; }
             continue;
@@ -258,21 +258,21 @@ struct disk *d, unsigned int tracknr, struct stream *s)
 
 
         // find data mark
-        if(apple_II_scan_mark(s, extra_data->data_mark, 20*8) < 0) {
+        if(appleII_scan_mark(s, extra_data->data_mark, 20*8) < 0) {
             trk_warn(ti, tracknr, "No data mark for sec=%02x", addrfld.sector);
             continue;
         }
         trk_warn(ti, tracknr, "DM OK");
 
         // extract data
-        if(apple_II_read_block(s, buf, extra_data->data_raw_length) == -1) {
+        if(appleII_read_block(s, buf, extra_data->data_raw_length) == -1) {
             trk_warn(ti, tracknr, "Could not read data for sec=%02x", addrfld.sector);
             continue;
         }
         
         // data checksum
         int16_t dat_cksum;
-        if((dat_cksum=apple_II_get_nybble(s, 0)) == -1) {
+        if((dat_cksum=appleII_get_nybble(s, 0)) == -1) {
             trk_warn(ti, tracknr, "No data checksum for sec=%02x", addrfld.sector);
             continue;
         }
@@ -288,11 +288,11 @@ struct disk *d, unsigned int tracknr, struct stream *s)
         }
         
         // find data postamble
-        if(apple_II_scan_mark(s, extra_data->postamble, 0) == -1) {
+        if(appleII_scan_mark(s, extra_data->postamble, 0) == -1) {
             trk_warn(ti, tracknr, "No data postamble for sec=%02x", addrfld.sector);
         }
         if(!is_valid_sector(ti, addrfld.sector)) {
-            memcpy(&block[addrfld.sector*ti->bytes_per_sector], dat, ti->bytes_per_sector);
+            memcpy(&block[/*sector_translate[*/addrfld.sector*ti->bytes_per_sector], dat, ti->bytes_per_sector);
             set_sector_valid(ti, addrfld.sector);
             nr_valid_blocks++;
         }
@@ -304,28 +304,41 @@ struct disk *d, unsigned int tracknr, struct stream *s)
     return block;
 }
 
-static void apple_II_sector_read_raw(
+static void appleII_read_raw(
 struct disk *d, unsigned int tracknr, struct tbuf *tbuf)
 {
 }
 
+
+void appleII_read_sectors(
+    struct disk *d, unsigned int tracknr, struct track_sectors *sectors)
+{
+    struct track_info *ti = &d->di->track[tracknr];
+
+    sectors->nr_bytes = ti->len;
+    sectors->data = memalloc(sectors->nr_bytes);
+    memcpy(sectors->data, ti->dat, sectors->nr_bytes);
+}
+
+
+
 /*
  *   Apple II 16-sector format
  */
-struct track_handler apple_II_16sector_handler = {
+struct track_handler appleII_16sector_handler = {
     .density = trkden_single,
     .bytes_per_sector = 256,
     .nr_sectors = 16,
-    .write_raw = apple_II_sector_write_raw,
-    .read_raw = apple_II_sector_read_raw,
-//    .write_sectors = apple_II_16sector_write_sectors,
-//    .read_sectors = apple_II_16sector_read_sectors,
-    .extra_data = & (struct apple_II_extra_data) {
+    .write_raw = appleII_write_raw,
+    .read_raw = appleII_read_raw,
+//    .write_sectors = appleII_write_sectors,
+    .read_sectors = appleII_read_sectors,
+    .extra_data = & (struct appleII_extra_data) {
         .address_mark = 0xFFD5AA96,
         .data_mark = 0xFFD5AAAD,
         .data_raw_length = 342,
         .postamble = 0xDEAAEB,
-        .decode_bytes = apple_II_16sector_decode_bytes
+        .decode_bytes = appleII_16sector_decode_bytes
     }
 };
 
@@ -333,20 +346,20 @@ struct track_handler apple_II_16sector_handler = {
 
 
 
-struct track_handler apple_II_13sector_handler = {
+struct track_handler appleII_13sector_handler = {
     .density = trkden_double,
     .bytes_per_sector = 256,
     .nr_sectors = 13,
-    .write_raw = apple_II_sector_write_raw,
-    .read_raw = apple_II_sector_read_raw,
-//    .write_sectors = apple_II_13sector_write_sectors,
-//    .read_sectors = apple_II_16sector_read_sectors,
-    .extra_data = & (struct apple_II_extra_data) {
+    .write_raw = appleII_write_raw,
+    .read_raw = appleII_read_raw,
+ //   .write_sectors = appleII_write_sectors,
+ //    .read_sectors = appleII_read_sectors,
+    .extra_data = & (struct appleII_extra_data) {
         .address_mark = 0xFFD5AAAB,
         .data_mark = 0xFFD5AAAD,
         .data_raw_length = 410,
         .postamble = 0xDEAAEB,
-        .decode_bytes = apple_II_13sector_decode_bytes
+        .decode_bytes = appleII_13sector_decode_bytes
     }
 };
 
