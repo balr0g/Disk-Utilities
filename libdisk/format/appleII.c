@@ -131,7 +131,7 @@ int appleII_read_block(struct stream *s, uint8_t *buf, unsigned int length)
     int i;
     int16_t tempnybble;
     for (i = 0; i < length; i++) {
-        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0);
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         buf[i] = tempnybble;
     }
@@ -188,7 +188,7 @@ int appleII_scan_address_field(struct stream *s, uint32_t addrmark, struct apple
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0);
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -199,7 +199,7 @@ int appleII_scan_address_field(struct stream *s, uint32_t addrmark, struct apple
     lastfour = 0;
     for (i = 0; i < 4; i++) {
         lastfour <<=8;
-        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0);
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -210,7 +210,7 @@ int appleII_scan_address_field(struct stream *s, uint32_t addrmark, struct apple
     lastfour = 0;
     for (i = 0; i < 3; i++) {
         lastfour <<=8;
-        tempnybble = appleII_get_nybble(s, 0); // should number of allowed slack bits be 12 here? probably more like 0...
+        tempnybble = appleII_get_nybble(s, 0);
         if (tempnybble == -1) return -1; // bail out of we ran out of bits
         lastfour |= tempnybble&0xFF;
     }
@@ -259,7 +259,7 @@ struct disk *d, unsigned int tracknr, struct stream *s)
 
         // find data mark
         if(appleII_scan_mark(s, extra_data->data_mark, 20*8) < 0) {
-            trk_warn(ti, tracknr, "No data mark for sec=%02x", addrfld.sector);
+            trk_warn(ti, tracknr, "No data mark for sec=%02x within 20 bytes of address header", addrfld.sector);
             continue;
         }
         trk_warn(ti, tracknr, "DM OK");
