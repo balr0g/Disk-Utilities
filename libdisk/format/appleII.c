@@ -326,7 +326,7 @@ void appleII_read_sectors(
  *   Apple II 16-sector format
  */
 struct track_handler appleII_16sector_handler = {
-    .density = trkden_single,
+    .density = TRKDEN_SINGLE,
     .bytes_per_sector = 256,
     .nr_sectors = 16,
     .write_raw = appleII_write_raw,
@@ -347,7 +347,7 @@ struct track_handler appleII_16sector_handler = {
 
 
 struct track_handler appleII_13sector_handler = {
-    .density = trkden_double,
+    .density = TRKDEN_SINGLE,
     .bytes_per_sector = 256,
     .nr_sectors = 13,
     .write_raw = appleII_write_raw,

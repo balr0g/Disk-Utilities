@@ -280,13 +280,7 @@ int track_write_sectors(
     if (thnd->write_sectors == NULL)
         goto fail;
 
-    switch (thnd->density) {
-    case trkden_single: ns_per_cell = 4000u; break;
-    case trkden_double: ns_per_cell = 2000u; break;
-    case trkden_high: ns_per_cell = 1000u; break;
-    case trkden_extra: ns_per_cell = 500u; break;
-    default: BUG();
-    }
+    ns_per_cell = (thnd->density != 0) ? thnd->density : TRKDEN_DOUBLE;
     ti->total_bits = (DEFAULT_BITS_PER_TRACK * 2000u) / ns_per_cell;
 
     ti->dat = thnd->write_sectors(d, tracknr, track_sectors);

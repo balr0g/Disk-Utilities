@@ -10,6 +10,15 @@
  */
 #define SPEED_AVG 1000u
 
+/*
+ * standard track densities in nanoseconds
+ */
+#define TRKDEN_SINGLE 4000u
+#define TRKDEN_DOUBLE 2000u
+#define TRKDEN_HIGH   1000u
+#define TRKDEN_EXTRA   500u
+
+
 /* Determined empirically -- larger than expected for 2us bitcell @ 300rpm */
 #define DEFAULT_BITS_PER_TRACK       100150
 
@@ -70,16 +79,9 @@ void tbuf_disable_auto_sector_split(struct tbuf *tbuf);
 #define TBUF_PRNG_INIT 0xae659201u
 uint16_t tbuf_rnd16(struct tbuf *tbuf);
 
-enum track_density {
-    trkden_double, /* default */
-    trkden_high,
-    trkden_single,
-    trkden_extra
-};
-
 /* Track handler -- interface for various raw-bitcell analysers/encoders. */
 struct track_handler {
-    enum track_density density;
+    unsigned int density;
     unsigned int bytes_per_sector;
     unsigned int nr_sectors;
     void *(*write_raw)(

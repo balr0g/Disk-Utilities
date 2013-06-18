@@ -220,14 +220,9 @@ int dsk_write_raw(
 
     memset(ti, 0, sizeof(*ti));
     init_track_info(ti, type);
-
-    switch (handlers[type]->density) {
-    case trkden_single: ns_per_cell = 4000u; break;
-    case trkden_double: ns_per_cell = 2000u; break;
-    case trkden_high: ns_per_cell = 1000u; break;
-    case trkden_extra: ns_per_cell = 500u; break;
-    default: BUG();
-    }
+    
+    ns_per_cell = (handlers[type]->density != 0) ? handlers[type]->density : TRKDEN_DOUBLE;
+    
     stream_set_density(s, ns_per_cell);
     default_len = (DEFAULT_BITS_PER_TRACK * 2000u) / ns_per_cell;
     ti->total_bits = default_len;

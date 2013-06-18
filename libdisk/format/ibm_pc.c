@@ -260,7 +260,7 @@ void ibm_pc_read_sectors(
 
 /* IBM PC 3.5 720K (80 track) and 5.25in 360K (40 track) */
 struct track_handler ibm_pc_dd_handler = {
-    .density = trkden_double,
+    .density = TRKDEN_DOUBLE,
     .bytes_per_sector = 512,
     .nr_sectors = 9,
     .write_raw = ibm_pc_write_raw,
@@ -274,7 +274,7 @@ struct track_handler ibm_pc_dd_handler = {
 
 /* IBM PC 5.25 HD 1200K */
 struct track_handler ibm_pc_hd_5_25_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 512,
     .nr_sectors = 15,
     .write_raw = ibm_pc_write_raw,
@@ -287,7 +287,7 @@ struct track_handler ibm_pc_hd_5_25_handler = {
 };
 
 struct track_handler ibm_pc_hd_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 512,
     .nr_sectors = 18,
     .write_raw = ibm_pc_write_raw,
@@ -300,7 +300,7 @@ struct track_handler ibm_pc_hd_handler = {
 };
 
 struct track_handler ibm_pc_ed_handler = {
-    .density = trkden_extra,
+    .density = TRKDEN_EXTRA,
     .bytes_per_sector = 512,
     .nr_sectors = 36,
     .write_raw = ibm_pc_write_raw,
@@ -314,7 +314,7 @@ struct track_handler ibm_pc_ed_handler = {
 
 /* Siemens iSDX telephone exchange. 80 tracks. */
 struct track_handler siemens_isdx_hd_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 256,
     .nr_sectors = 32,
     .write_raw = ibm_pc_write_raw,
@@ -331,7 +331,7 @@ struct track_handler siemens_isdx_hd_handler = {
  * 21 spt, 512 bytes/sector, 80 tracks
  */
 struct track_handler microsoft_dmf_hd_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 512,
     .nr_sectors = 21,
     .write_raw = ibm_pc_write_raw,
@@ -349,7 +349,7 @@ struct track_handler microsoft_dmf_hd_handler = {
  * Always stored on phys cyl 80, heads 0 and 1, identical data on both sides.
  */
 struct track_handler trace_traceback_hd_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 2048,
     .nr_sectors = 1,
     .write_raw = ibm_pc_write_raw,
@@ -368,7 +368,7 @@ struct track_handler trace_traceback_hd_handler = {
  *   L is 80 tracks, double sided, DD
  */
 struct track_handler acorn_adfs_s_m_l_handler = {
-    .density = trkden_double,
+    .density = TRKDEN_DOUBLE,
     .bytes_per_sector = 256,
     .nr_sectors = 16,
     .write_raw = ibm_pc_write_raw,
@@ -382,7 +382,7 @@ struct track_handler acorn_adfs_s_m_l_handler = {
 
 /* Acorn ADFS "D" or "E" - 80tk double sided DD */
 struct track_handler acorn_adfs_d_e_handler = {
-    .density = trkden_double,
+    .density = TRKDEN_DOUBLE,
     .bytes_per_sector = 1024,
     .nr_sectors = 5,
     .write_raw = ibm_pc_write_raw,
@@ -396,7 +396,7 @@ struct track_handler acorn_adfs_d_e_handler = {
 
 /* Acorn ADFS "F" - 80tk double sided HD */
 struct track_handler acorn_adfs_f_handler = {
-    .density = trkden_high,
+    .density = TRKDEN_HIGH,
     .bytes_per_sector = 1024,
     .nr_sectors = 10,
     .write_raw = ibm_pc_write_raw,
@@ -410,7 +410,7 @@ struct track_handler acorn_adfs_f_handler = {
 
 /* Canon Cat (80 track) single-sided */
 struct track_handler canon_cat_handler = {
-    .density = trkden_double,
+    .density = TRKDEN_DOUBLE,
     .bytes_per_sector = 512,
     .nr_sectors = 10,
     .write_raw = ibm_pc_write_raw,
