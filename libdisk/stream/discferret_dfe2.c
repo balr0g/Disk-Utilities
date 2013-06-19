@@ -144,6 +144,7 @@ static int dfe2_select_track(struct stream *s, unsigned int tracknr)
     uint16_t sector = 0;
     uint32_t data_length = 0;
     off_t cur_offst = 0;
+    int nr_heads = 0;
     
     if (dfss->dat && (dfss->track == tracknr))
         return 0;
@@ -161,9 +162,14 @@ static int dfe2_select_track(struct stream *s, unsigned int tracknr)
         head = be16toh(*(uint16_t *)&header[2]);
         sector = be16toh(*(uint16_t *)&header[4]);
         data_length = be32toh(*(uint32_t *)&header[6]);
+        if(nr_heads < head+1) nr_heads = head+1;
     }
-    if (tracknr != (cyl*2)+head)
-        printf("DFI track number doesn't match!\n");
+    if (tracknr != (cyl*nr_heads)+head)
+        printf("DFI track number doesn't match %d should be %d!\n", tracknr, (cyl*2)+head);
+    else {
+  //      printf("DFI track number does    match %d should be %d!\n", tracknr, (cyl*2)+head);
+
+    }
     if (sector != 1)
         errx(1, "Hard sectored disks are not supported!\n");
 

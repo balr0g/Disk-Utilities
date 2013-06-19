@@ -101,7 +101,7 @@ static void handle_stream(void)
         errx(1, "Unable to create new disk file: %s", out);
 
     di = disk_get_info(d);
-
+    printf("Num tracks: %d\n", di->nr_tracks);
     for (i = 0; i < di->nr_tracks; i++) {
         struct format_list *list = format_lists[i];
         unsigned int j;

@@ -17,7 +17,7 @@
 
 #include "common.h"
 
-#define NR_TRACKS 200
+#define NR_TRACKS 8190 //200
 
 #define DEF_DIR PREFIX "/share/disk-analyse"
 #define DEF_FIL "formats"
