@@ -244,7 +244,7 @@ static void handle_dir(int fd, char *prefix, struct ffs_dir *dir)
     struct ffs_fileheader *file;
 
     if (!is_readonly)
-        (void)mkdir(prefix, 0777);
+        (void)posix_mkdir(prefix, 0777);
 
     strcat(prefix, "/");
     printf(" %-61s %s\n", prefix, format_datestamp(&dir->datestamp));
