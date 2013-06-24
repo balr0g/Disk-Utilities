@@ -141,7 +141,7 @@ int appleII_read_block(struct stream *s, uint8_t *buf, unsigned int length)
 /**
  @return 0 if found, -1 if no mark found before end of stream
 **/
-int appleII_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
+int appleII_scan_mark(struct stream *s, uint32_t mark, uint32_t mask, unsigned int max_scan)
 {
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour = 0; // last four nybbles read
@@ -151,10 +151,10 @@ int appleII_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
         // otherwise stash the nybble we just got
         lastfour <<= 8;
         lastfour |= (tempnybble&0xFF);
-        if ((lastfour&0x00FFFFFF)==(mark&0x00FFFFFF)) { // found mark
+        if ((lastfour&mask)==(mark&mask)) { // found mark
             printf("%08X ", lastfour);
             // describe what was found, for the viewers at home
-            switch(lastfour&0x00FFFFFF) {
+            switch(lastfour&mask) {
                 case 0x00D5AA96:
                     printf("Address mark header (16sector)\n");
                     break;
@@ -164,7 +164,7 @@ int appleII_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
                 case 0x00D5AAAD:
                     printf("Data mark header\n");
                     break;
-                case 0x00DEAAEB:
+                case 0x00DEAA00:
                     printf("Postamble\n");
                     break;
                 default:
@@ -178,7 +178,7 @@ int appleII_scan_mark(struct stream *s, uint32_t mark, unsigned int max_scan)
 
 int appleII_scan_address_field(struct stream *s, uint32_t addrmark, struct appleII_address_field *address_field)
 {
-    int mark_status = appleII_scan_mark(s, addrmark, ~0u);
+    int mark_status = appleII_scan_mark(s, addrmark, 0x00FFFFFF, ~0u);
     int i;
     int16_t tempnybble; // needs to be signed since get_nybble can return -1 if the stream ran out
     uint32_t lastfour; // last four nybbles read
@@ -248,32 +248,35 @@ struct disk *d, unsigned int tracknr, struct stream *s)
         }
 
         uint8_t cksum = (addrfld.sector ^ addrfld.track ^ addrfld.volume);
-        int am_status = 2; // 2 = good, 1 = warn, 0 = bad
-        static const char *const status_labels[] = { "BAD", "WARN", "GOOD" };
-        if(addrfld.sector >= ti->nr_sectors) { trk_warn(ti, tracknr, "Sector out of range: expected %02x <= found %02x", ti->nr_sectors, addrfld.sector); am_status = 1; }
-        if(addrfld.track != tracknr/2) { trk_warn(ti, tracknr, "Unexpected Track value: expected %02x, found %02x", tracknr/2, addrfld.track); am_status = 1; }
-        if(addrfld.postamble != extra_data->postamble) { trk_warn(ti, tracknr, "Unexpected postamble: expected %06x, found %06x", extra_data->postamble, addrfld.postamble); am_status = 1; }
-        if(cksum != addrfld.checksum) { trk_warn(ti, tracknr, "Incorrect checksum: expected %02x, found %02x", cksum, addrfld.checksum); am_status = 0; }
+        int am_status = 2; // 2 = ok(normal), 1 = warn(nonfatal problem), 0 = bad
+		int dm_status = 2; // 2 = ok, 1 = warn, 0 = bad, 3 = missing/not found
+        static const char *const status_labels[] = { "BAD", "WARN", "OK", "NOT FOUND" };
+        if(addrfld.sector >= ti->nr_sectors) { trk_warn(ti, tracknr, "WARN: Sector out of range: expected %02x <= found %02x", ti->nr_sectors, addrfld.sector); am_status = 1; }
+        if(addrfld.track != tracknr/2) { trk_warn(ti, tracknr, "WARN: Unexpected Track value: expected %02x, found %02x", tracknr/2, addrfld.track); am_status = 1; }
+        if((addrfld.postamble&0x00FFFF00) != (extra_data->postamble&0x00FFFF00)) { trk_warn(ti, tracknr, "ERROR: Unexpected postamble: expected %06x, found %06x", extra_data->postamble, addrfld.postamble); am_status = 0; }
+        if(cksum != addrfld.checksum) { trk_warn(ti, tracknr, "ERROR: Incorrect checksum: expected %02x, found %02x", cksum, addrfld.checksum); am_status = 0; }
         trk_warn(ti, tracknr, "AM %s", status_labels[am_status]);
 
 
         // find data mark
-        if(appleII_scan_mark(s, extra_data->data_mark, 20*8) < 0) {
-            trk_warn(ti, tracknr, "No data mark for sec=%02x within 20 bytes of address header", addrfld.sector);
+        if(appleII_scan_mark(s, extra_data->data_mark, 0x00FFFFFF, 20*8) < 0) {
+            trk_warn(ti, tracknr, "ERROR: No data mark for sec=%02x within 20 bytes of address header", addrfld.sector);
+			dm_status = 3;
             continue;
         }
-        trk_warn(ti, tracknr, "DM OK");
 
         // extract data
         if(appleII_read_block(s, buf, extra_data->data_raw_length) == -1) {
-            trk_warn(ti, tracknr, "Could not read data for sec=%02x", addrfld.sector);
+            trk_warn(ti, tracknr, "ERROR: Could not read data for sec=%02x", addrfld.sector);
+			dm_status = 0;
             continue;
         }
         
         // data checksum
         int16_t dat_cksum;
         if((dat_cksum=appleII_get_nybble(s, 0)) == -1) {
-            trk_warn(ti, tracknr, "No data checksum for sec=%02x", addrfld.sector);
+            trk_warn(ti, tracknr, "ERROR: No data checksum for sec=%02x", addrfld.sector);
+			dm_status = 0;
             continue;
         }
                 
@@ -282,15 +285,19 @@ struct disk *d, unsigned int tracknr, struct stream *s)
 
         // verify data checksum
         if(gcr6bw_tb[dat_cksum] != calc_cksum) {
-            trk_warn(ti, tracknr, "Invalid checksum for sec=%02x: Expected=%02x, Actual=%02x", addrfld.sector, dat_cksum, calc_cksum);
-        } else {
-            trk_warn(ti, tracknr, "Good checksum for sec=%02x", addrfld.sector);
-        }
+            trk_warn(ti, tracknr, "ERROR: Invalid checksum for sec=%02x: Expected=%02x, Actual=%02x", addrfld.sector, dat_cksum, calc_cksum);
+			dm_status = 0;
+		}
         
         // find data postamble
-        if(appleII_scan_mark(s, extra_data->postamble, 0) == -1) {
-            trk_warn(ti, tracknr, "No data postamble for sec=%02x", addrfld.sector);
+        if(appleII_scan_mark(s, extra_data->postamble, 0x00FFFF00, 0) == -1) {
+            trk_warn(ti, tracknr, "ERROR: No data postamble for sec=%02x", addrfld.sector);
+			dm_status = 0;
         }
+		
+		// print status
+		trk_warn(ti, tracknr, "DM %s", status_labels[dm_status]);
+		
         if(!is_valid_sector(ti, addrfld.sector)) {
             memcpy(&block[/*sector_translate[*/addrfld.sector*ti->bytes_per_sector], dat, ti->bytes_per_sector);
             set_sector_valid(ti, addrfld.sector);
